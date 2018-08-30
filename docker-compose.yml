@@ -1,0 +1,63 @@
+version: '3'
+services:
+  prometheus:
+    build:
+      context: ./prometheus
+      dockerfile: Dockerfile
+    ports:
+      - "9090:9090"
+    depends_on:
+      - random1
+      - random2
+      - random3
+      - prometheus_postgresql_adapter
+  pg_prometheus:
+    image: timescale/pg_prometheus:master
+    ports:
+      - "5432:5432"
+    command: postgres -csynchronous_commit=off
+  prometheus_postgresql_adapter:
+    depends_on:
+      - pg_prometheus
+    image: timescale/prometheus-postgresql-adapter:master
+    ports:
+      - "9201:9201"
+    command: -pg.host=pg_prometheus -pg.prometheus-log-samples
+  grafana:
+    build:
+      context: ./grafana
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=NgDxr3DCsh6mMrUVkKaQ2UDpgv6y9rc4
+      - PROMETHEUS_HOST=prometheus
+    volumes:
+       - grafana:/var/lib/grafana
+    entrypoint: /start-grafana.sh
+  random1:
+    build:
+      context: ./random
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    command: ./random -listen-address=:8080
+  random2:
+    build:
+      context: ./random
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    command: ./random -listen-address=:8081
+  random3:
+    build:
+      context: ./random
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8082"
+    command: ./random -listen-address=:8082
+volumes:
+  grafana:
